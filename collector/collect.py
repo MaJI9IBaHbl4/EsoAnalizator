@@ -149,9 +149,39 @@ def append_row(data_dir: Path, row: dict) -> Path:
     return month_file
 
 
+# A run started by hand seconds after a scheduled one reads the very same
+# numbers: the source refreshes every 15 minutes. Recording it again adds a
+# row that says nothing and shows up in the table as a line of dashes.
+REPEAT_WINDOW_SECONDS = 5 * 60
+
+
 def read_csv(path: Path) -> list[dict]:
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def last_recorded(data_dir: Path) -> dict | None:
+    """The newest row already on disk, or None on a first run."""
+    months = sorted(data_dir.glob("[0-9][0-9][0-9][0-9]-[0-9][0-9].csv"))
+    for path in reversed(months):
+        rows = read_csv(path)
+        if rows:
+            return rows[-1]
+    return None
+
+
+def repeats(previous: dict, row: dict) -> bool:
+    """True when `row` is the same reading as `previous`, taken moments later.
+
+    Only the rapid case counts. Two identical readings a quarter of an hour
+    apart are two real measurements that happened to agree, and dropping one
+    would erase the fact that the value held.
+    """
+    if any(str(previous.get(key, "")) != str(row[key]) for key in ("k", "c", "n", "p")):
+        return False
+    stamp = "%Y-%m-%dT%H:%M:%SZ"
+    gap = datetime.strptime(row["ts_utc"], stamp) - datetime.strptime(previous["ts_utc"], stamp)
+    return gap.total_seconds() < REPEAT_WINDOW_SECONDS
 
 
 def rebuild_index(data_dir: Path, latest: dict) -> None:
@@ -222,6 +252,11 @@ def main() -> int:
 
     if args.dry_run:
         print("dry run: nothing written")
+        return 0
+
+    previous = last_recorded(args.data_dir)
+    if previous is not None and repeats(previous, row):
+        print(f"identical to the reading at {previous['ts_utc']}; not recorded")
         return 0
 
     month_file = append_row(args.data_dir, row)
