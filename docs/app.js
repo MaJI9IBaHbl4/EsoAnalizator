@@ -65,6 +65,14 @@
     return response.json();
   }
 
+  /* An empty cell is a counter that was never recorded - not a zero. The
+     hand-collected history that predates the collector carries no
+     planned-outage column, and drawing that as a flat zero would invent a
+     measurement that was never taken. */
+  const value = (raw) => (raw === undefined || raw === "" ? null : Number(raw));
+
+  const fmtValue = (v) => (v === null ? "–" : numberFmt.format(v));
+
   function parseCsv(text) {
     const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
@@ -79,8 +87,8 @@
       if (Number.isNaN(time)) continue;
       rows.push({
         t: time,
-        k: Number(row.k), c: Number(row.c),
-        n: Number(row.n), p: Number(row.p),
+        k: value(row.k), c: value(row.c),
+        n: value(row.n), p: value(row.p),
       });
     }
     return rows;
@@ -247,19 +255,21 @@
 
       const value = document.createElement("div");
       value.className = "tile__value";
-      value.textContent = numberFmt.format(last[tile.key]);
+      value.textContent = fmtValue(last[tile.key]);
 
       const foot = document.createElement("div");
       foot.className = "tile__foot";
 
       const deltas = document.createElement("div");
       deltas.className = "tile__deltas";
-      if (previous) {
+      // A change against a reading that does not exist is not zero change.
+      const known = (row) => Boolean(row) && row[tile.key] !== null;
+      if (known(previous) && known(last)) {
         deltas.appendChild(deltaLine(
           last[tile.key] - previous[tile.key], stepWindow, "tile__delta--step",
         ));
       }
-      if (rows.length > 1) {
+      if (rows.length > 1 && known(first) && known(last)) {
         deltas.appendChild(deltaLine(
           last[tile.key] - first[tile.key], RANGE_LABELS[state.hours], "tile__delta--range",
         ));
@@ -275,7 +285,7 @@
     const width = 84;
     const height = 26;
     const svg = node("svg", { class: "spark", width, height, viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
-    const points = decimate(rows).map((row) => row[key]);
+    const points = decimate(rows).map((row) => row[key]).filter((v) => v !== null);
     if (points.length < 2) return svg;
 
     const min = Math.min(...points);
@@ -333,14 +343,26 @@
     const t1 = rows[rows.length - 1].t;
     const tSpan = t1 - t0 || 1;
     let peak = 0;
-    for (const row of rows) for (const key of config.keys) peak = Math.max(peak, row[key]);
+    for (const row of rows) {
+      for (const key of config.keys) {
+        if (row[key] !== null && row[key] > peak) peak = row[key];
+      }
+    }
+    // The last reading that actually has a value for a series, per series.
+    const lastKnown = {};
+    for (const key of config.keys) {
+      for (let i = rows.length - 1; i >= 0; i -= 1) {
+        if (rows[i][key] !== null) { lastKnown[key] = rows[i]; break; }
+      }
+    }
     const steps = 4;
     const { max: yMax } = niceScale(peak, steps);
 
     // Reserve the gutters the labels actually need, so nothing is clipped:
     // left for the widest y tick, right for the direct end-labels.
     const tickWidth = numberFmt.format(yMax).length * 6.4;
-    const endWidth = Math.max(...config.keys.map((key) => numberFmt.format(rows[rows.length - 1][key]).length)) * 6.6;
+    const endWidth = Math.max(...config.keys.map(
+      (key) => (lastKnown[key] ? numberFmt.format(lastKnown[key][key]).length : 1))) * 6.6;
     const pad = {
       top: 14,
       right: Math.ceil(endWidth) + 18,
@@ -375,17 +397,34 @@
       label.appendChild(document.createTextNode((useClock ? clockFmt : dateFmt).format(new Date(t))));
     }
 
+    // A gap is drawn as a gap: bridging it would assert readings nobody took.
     for (const key of config.keys) {
-      const d = rows
-        .map((row, i) => `${i ? "L" : "M"}${xOf(row.t).toFixed(1)},${yOf(row[key]).toFixed(1)}`)
-        .join(" ");
-      node("path", { class: "line", d, stroke: SERIES[key].color }, svg);
+      let run = [];
+      const flush = () => {
+        if (run.length > 1) {
+          const d = run
+            .map((row, i) => `${i ? "L" : "M"}${xOf(row.t).toFixed(1)},${yOf(row[key]).toFixed(1)}`)
+            .join(" ");
+          node("path", { class: "line", d, stroke: SERIES[key].color }, svg);
+        } else if (run.length === 1) {
+          node("circle", {
+            cx: xOf(run[0].t), cy: yOf(run[0][key]), r: 2.5, fill: SERIES[key].color,
+          }, svg);
+        }
+        run = [];
+      };
+      for (const row of rows) {
+        if (row[key] === null) flush();
+        else run.push(row);
+      }
+      flush();
     }
 
     // End marker + direct label: the last value never depends on the tooltip.
-    const last = rows[rows.length - 1];
     const placed = [];
     for (const key of config.keys) {
+      const last = lastKnown[key];
+      if (!last) continue;
       const cx = xOf(last.t);
       const cy = yOf(last[key]);
       node("circle", { class: "ring", cx, cy, r: 4, fill: SERIES[key].color }, svg);
@@ -425,6 +464,10 @@
       crosshair.setAttribute("x2", x);
       crosshair.setAttribute("opacity", 1);
       config.keys.forEach((key, i) => {
+        if (row[key] === null) {
+          markers[i].setAttribute("opacity", 0);
+          return;
+        }
         markers[i].setAttribute("cx", x);
         markers[i].setAttribute("cy", yOf(row[key]));
         markers[i].setAttribute("opacity", 1);
@@ -443,7 +486,7 @@
         swatch.style.setProperty("--key-color", SERIES[key].color);
         const value = document.createElement("span");
         value.className = "tooltip__value";
-        value.textContent = numberFmt.format(row[key]);
+        value.textContent = fmtValue(row[key]);
         const name = document.createElement("span");
         name.className = "tooltip__name";
         name.textContent = SERIES[key].name;
@@ -507,12 +550,14 @@
 
         const value = document.createElement("span");
         value.className = "cell-value";
-        value.textContent = numberFmt.format(row[key]);
+        value.textContent = fmtValue(row[key]);
 
         // Fixed-width so the values above it stay in a straight column.
         const delta = document.createElement("span");
         delta.className = "cell-delta delta";
-        if (previous) fillDelta(delta, row[key] - previous[key]);
+        if (previous && row[key] !== null && previous[key] !== null) {
+          fillDelta(delta, row[key] - previous[key]);
+        }
 
         td.append(value, delta);
         tr.appendChild(td);
