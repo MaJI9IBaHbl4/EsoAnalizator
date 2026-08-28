@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import http.cookiejar
 import json
 import os
 import sys
@@ -35,7 +36,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-URL = "https://www.eso.lt/atjungimai-planiniai-neplaniniai/statdata"
+PAGE_URL = "https://www.eso.lt/atjungimai-planiniai-neplaniniai"
+URL = f"{PAGE_URL}/statdata"
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -56,27 +58,63 @@ LABELS = {
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent / "docs" / "data"
 
 
+def build_opener() -> urllib.request.OpenerDirector:
+    """An opener that keeps cookies, so the warm-up hand-off works."""
+    return urllib.request.build_opener(
+        urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
+    )
+
+
+def get(opener, url: str, accept: str, timeout: int) -> bytes:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": accept,
+            "Accept-Language": "lt,en;q=0.9,en-US;q=0.8",
+            "Accept-Encoding": "identity",
+            "Referer": PAGE_URL,
+            "X-Requested-With": "XMLHttpRequest",
+            "Connection": "keep-alive",
+        },
+    )
+    with opener.open(request, timeout=timeout) as response:
+        return response.read()
+
+
+def describe(error: Exception) -> str:
+    """Include the response body on an HTTP error - a bare 403 says nothing."""
+    if isinstance(error, urllib.error.HTTPError):
+        try:
+            body = error.read().decode("utf-8", "replace").strip()
+        except Exception:  # pragma: no cover - body may already be consumed
+            body = ""
+        snippet = " ".join(body.split())[:300]
+        return f"HTTP {error.code} {error.reason}" + (f" | body: {snippet}" if snippet else "")
+    return str(error)
+
+
 def fetch(url: str, attempts: int = 4, timeout: int = 30) -> dict:
-    """GET the endpoint, retrying with exponential backoff on transient errors."""
+    """GET the endpoint, retrying with exponential backoff on transient errors.
+
+    Each attempt first loads the map page, exactly as a browser does: the
+    endpoint is an XHR of that page and rejects callers that arrive cold.
+    """
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
-        request = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "application/json, text/plain, */*",
-                "Accept-Language": "lt,en;q=0.8",
-                "Referer": "https://www.eso.lt/atjungimai-planiniai-neplaniniai",
-            },
-        )
+        opener = build_opener()
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+            get(opener, PAGE_URL, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8", timeout)
+            payload = json.loads(
+                get(opener, url, "application/json, text/plain, */*", timeout).decode("utf-8")
+            )
             break
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as error:
             last_error = error
             if attempt == attempts:
-                raise RuntimeError(f"{attempts} attempts failed: {error}") from error
+                raise RuntimeError(
+                    f"{attempts} attempts failed: {describe(error)}"
+                ) from error
             time.sleep(2 ** attempt)
     else:  # pragma: no cover - loop always breaks or raises
         raise RuntimeError(str(last_error))
@@ -163,18 +201,20 @@ def main() -> int:
         help="fetch and print the sample without writing anything",
     )
     parser.add_argument(
-        "--strict",
+        "--lenient",
         action="store_true",
-        help="exit non-zero when the fetch fails (default: warn and exit 0)",
+        help="warn and exit 0 when the fetch fails, instead of failing the run",
     )
     args = parser.parse_args()
 
     try:
         row = fetch(URL)
     except RuntimeError as error:
-        message = f"could not collect ESO statistics: {error}"
-        print(f"::warning::{message}", file=sys.stderr)
-        return 1 if args.strict else 0
+        # Failing loudly is the point: a green run that collected nothing is
+        # worse than a red one, because the gap only shows up months later.
+        level = "warning" if args.lenient else "error"
+        print(f"::{level}::could not collect ESO statistics: {error}", file=sys.stderr)
+        return 0 if args.lenient else 1
 
     row["ts_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     summary = " ".join(f"{key}={row[key]}" for key in ("k", "c", "n", "p"))
