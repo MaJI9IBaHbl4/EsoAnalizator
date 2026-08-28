@@ -339,8 +339,21 @@
       tip.dataset.open = "false";
     };
 
+    // Capture on touch: the finger keeps driving the crosshair even when it
+    // strays off the plot, and the reading stays up after it lifts - lifting
+    // is how you read the number on a phone.
+    svg.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
+      // Capturing can throw if the pointer is already gone; the crosshair
+      // still has to appear.
+      try { svg.setPointerCapture(event.pointerId); } catch { /* released */ }
+      show(findIndex(event.clientX));
+    });
     svg.addEventListener("pointermove", (event) => show(findIndex(event.clientX)));
-    svg.addEventListener("pointerleave", hide);
+    svg.addEventListener("pointerleave", (event) => {
+      if (event.pointerType === "mouse") hide();
+    });
+    svg.addEventListener("pointercancel", hide);
     svg.addEventListener("focus", () => show(rows.length - 1));
     svg.addEventListener("blur", hide);
     svg.addEventListener("keydown", (event) => {
