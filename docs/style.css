@@ -245,8 +245,34 @@ h1 {
 .tile__delta--step { font-size: 12.5px; }
 .tile__delta--range { font-size: 12px; }
 
-.tile__delta--up { color: var(--delta-up); }
-.tile__delta--down { color: var(--delta-down); }
+/* ---- deltas: arrow + colour, shared by tiles and the table ---- */
+
+.delta--up { color: var(--delta-up); }
+.delta--down { color: var(--delta-down); }
+.delta--flat { color: var(--text-muted); }
+
+/* Smaller than its number and nudged up: the triangle is a marker beside the
+   value, not a character in it. */
+.delta__arrow {
+  font-size: 0.72em;
+  line-height: 1;
+  margin-right: 3px;
+  vertical-align: 1px;
+}
+
+/* Present to assistive tech, absent on screen - the arrow is aria-hidden, so
+   this carries the direction instead. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 
 .spark { display: block; flex: none; }
 
@@ -360,6 +386,18 @@ th, td {
 th { color: var(--text-secondary); font-weight: 600; }
 th:first-child, td:first-child { text-align: left; }
 tbody tr:hover { background: var(--hover-wash); }
+
+.cell-value { display: inline-block; }
+
+/* A fixed box after each value, so a two-digit change and a four-digit one
+   leave the numbers above them in the same straight column. */
+.cell-delta {
+  display: inline-block;
+  min-width: 5.2em;
+  margin-left: 10px;
+  text-align: left;
+  font-size: 11.5px;
+}
 
 .table-note { font-size: 12.5px; color: var(--text-muted); margin: 8px 2px 0; }
 

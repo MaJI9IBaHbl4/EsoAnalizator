@@ -177,20 +177,42 @@
   }
 
   /**
-   * Signed delta line. `window` names the span it covers, so the two deltas on
-   * a tile can never be mistaken for each other.
+   * Fills `host` with an arrow, the direction spelled out for screen readers,
+   * and the magnitude. The arrow is a second channel beside colour, so
+   * direction survives colour blindness, greyscale print and forced-colors.
+   */
+  function fillDelta(host, change, suffix = "") {
+    if (change === 0) {
+      host.classList.add("delta--flat");
+      host.textContent = suffix ? `be pokyčių ${suffix}` : "–";
+      return host;
+    }
+
+    host.classList.add(change > 0 ? "delta--up" : "delta--down");
+
+    const arrow = document.createElement("span");
+    arrow.className = "delta__arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = change > 0 ? "▲" : "▼";
+
+    // The glyph carries no meaning for a screen reader; this word does.
+    const spoken = document.createElement("span");
+    spoken.className = "sr-only";
+    spoken.textContent = change > 0 ? "padidėjo " : "sumažėjo ";
+
+    const amount = numberFmt.format(Math.abs(change));
+    host.append(arrow, spoken, document.createTextNode(suffix ? `${amount} ${suffix}` : amount));
+    return host;
+  }
+
+  /**
+   * Delta line for a tile. `window` names the span it covers, so the two deltas
+   * on a tile can never be mistaken for each other.
    */
   function deltaLine(change, window, className) {
     const span = document.createElement("span");
-    span.className = `tile__delta ${className}`;
-    if (change === 0) {
-      span.textContent = `be pokyčių per ${window}`;
-      return span;
-    }
-    span.classList.add(change > 0 ? "tile__delta--up" : "tile__delta--down");
-    const sign = change > 0 ? "+" : "−";
-    span.textContent = `${sign}${numberFmt.format(Math.abs(change))} per ${window}`;
-    return span;
+    span.className = `tile__delta delta ${className}`;
+    return fillDelta(span, change, `per ${window}`);
   }
 
   /* ---------------- stat tiles ---------------- */
@@ -461,29 +483,48 @@
 
   /* ---------------- table view ---------------- */
 
+  const TABLE_KEYS = ["k", "c", "n", "p"];
+  const TABLE_LIMIT = 500;
+
   function renderTable(rows) {
     const body = el("table-body");
     body.textContent = "";
-    const shown = rows.slice(-500).reverse();
-    for (const row of shown) {
+
+    // Newest first, each row paired with the reading that came before it.
+    const from = Math.max(0, rows.length - TABLE_LIMIT);
+    let shown = 0;
+    for (let i = rows.length - 1; i >= from; i -= 1) {
+      const row = rows[i];
+      const previous = i > 0 ? rows[i - 1] : null;
       const tr = document.createElement("tr");
-      const cells = [
-        timeFmt.format(new Date(row.t)),
-        numberFmt.format(row.k),
-        numberFmt.format(row.c),
-        numberFmt.format(row.n),
-        numberFmt.format(row.p),
-      ];
-      cells.forEach((text) => {
+
+      const time = document.createElement("td");
+      time.textContent = timeFmt.format(new Date(row.t));
+      tr.appendChild(time);
+
+      for (const key of TABLE_KEYS) {
         const td = document.createElement("td");
-        td.textContent = text;
+
+        const value = document.createElement("span");
+        value.className = "cell-value";
+        value.textContent = numberFmt.format(row[key]);
+
+        // Fixed-width so the values above it stay in a straight column.
+        const delta = document.createElement("span");
+        delta.className = "cell-delta delta";
+        if (previous) fillDelta(delta, row[key] - previous[key]);
+
+        td.append(value, delta);
         tr.appendChild(td);
-      });
+      }
+
       body.appendChild(tr);
+      shown += 1;
     }
+
     el("table-count").textContent = `${numberFmt.format(rows.length)} įrašų per ${RANGE_LABELS[state.hours]}`;
-    el("table-note").textContent = rows.length > shown.length
-      ? `Rodomi paskutiniai ${shown.length}. Visa istorija — CSV failuose docs/data/.`
+    el("table-note").textContent = rows.length > shown
+      ? `Rodomi paskutiniai ${shown}. Visa istorija — CSV failuose docs/data/.`
       : "";
   }
 
