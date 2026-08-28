@@ -51,6 +51,11 @@
     // label has to say how long the step actually was.
     const stepWindow = previous ? duration(last.t - previous.t) : null;
 
+    // The period delta is labelled with the span the readings actually cover,
+    // not the span that was asked for. With five days of history, a change
+    // labelled "per 30 dienu" claims a measurement that was never taken.
+    const coveredWindow = duration(last.t - first.t);
+
     for (const tile of TILES) {
       const meta = SERIES[tile.key];
       const card = document.createElement("div");
@@ -81,7 +86,7 @@
       }
       if (rows.length > 1 && known(first) && known(last)) {
         deltas.appendChild(deltaLine(
-          last[tile.key] - first[tile.key], RANGE_LABELS[state.hours], "tile__delta--range",
+          last[tile.key] - first[tile.key], coveredWindow, "tile__delta--range",
         ));
       }
 

@@ -9,8 +9,8 @@
   "use strict";
 
   const {
-    SERIES, METRICS, RANGE_LABELS, numberFmt, decimalFmt, timeFmt, dateFmt,
-    clockFmt, monthFmt, state, el,
+    SERIES, METRICS, numberFmt, decimalFmt, timeFmt, dateFmt,
+    clockFmt, monthFmt, duration, state, el,
   } = ESO.core;
   const {
     GRANULARITIES, AGGREGATIONS, DIMENSIONS, autoGranularity,
@@ -47,6 +47,9 @@
     host.textContent = "";
     if (!rows.length) return;
 
+    // Same rule as the overview tab: name the span the data covers, not the
+    // one the picker asked for.
+    const covered = duration(rows[rows.length - 1].t - rows[0].t);
     const now = overall(rows, METRICS, config.aggregation);
     const before = previousRows.length
       ? overall(previousRows, METRICS, config.aggregation)
@@ -71,7 +74,7 @@
 
       const caption = document.createElement("div");
       caption.className = "tile__caption";
-      caption.textContent = `${aggLabel} per ${RANGE_LABELS[state.hours]}`;
+      caption.textContent = `${aggLabel} per ${covered}`;
 
       const foot = document.createElement("div");
       foot.className = "tile__foot";
@@ -282,7 +285,11 @@
         : "Palyginimas veikia tik pasirinkus konkretų laikotarpį.";
       return;
     }
-    note.textContent = `Lyginama su ankstesnėmis ${RANGE_LABELS[state.hours]}.`;
+    const nowSpan = duration(rows[rows.length - 1].t - rows[0].t);
+    const beforeSpan = duration(
+      previousRows[previousRows.length - 1].t - previousRows[0].t,
+    );
+    note.textContent = `Dabar: ${nowSpan} duomenų · anksčiau: ${beforeSpan}.`;
 
     const now = overall(rows, METRICS, "avg");
     const before = overall(previousRows, METRICS, "avg");
