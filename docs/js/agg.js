@@ -143,13 +143,14 @@
     return buckets.map((bucket) => {
       const point = { t: bucket.t, count: bucket.rows.length, empty: !bucket.rows.length };
       for (const key of keys) {
-        if (!bucket.rows.length) {
+        // A reading that was never taken must not be averaged in as a zero.
+        const values = bucket.rows.map((row) => row[key]).filter((v) => v !== null);
+        if (!values.length) {
           point[key] = null;
           point[`${key}_min`] = null;
           point[`${key}_max`] = null;
           continue;
         }
-        const values = bucket.rows.map((row) => row[key]);
         point[key] = apply(values);
         point[`${key}_min`] = Math.min(...values);
         point[`${key}_max`] = Math.max(...values);
@@ -163,16 +164,20 @@
     const apply = (AGGREGATIONS[how] || AGGREGATIONS.avg).apply;
     const out = { count: rows.length };
     for (const key of keys) {
-      if (!rows.length) {
+      const known = rows.filter((row) => row[key] !== null);
+      if (!known.length) {
         out[key] = null;
+        out[`${key}_min`] = null;
+        out[`${key}_max`] = null;
+        out[`${key}_peak_t`] = null;
         continue;
       }
-      const values = rows.map((row) => row[key]);
+      const values = known.map((row) => row[key]);
       out[key] = apply(values);
       out[`${key}_min`] = Math.min(...values);
       out[`${key}_max`] = Math.max(...values);
-      let peakAt = rows[0];
-      for (const row of rows) if (row[key] > peakAt[key]) peakAt = row;
+      let peakAt = known[0];
+      for (const row of known) if (row[key] > peakAt[key]) peakAt = row;
       out[`${key}_peak_t`] = peakAt.t;
     }
     return out;
@@ -223,6 +228,7 @@
     const seenCols = new Set();
 
     for (const row of rows) {
+      if (row[key] === null) continue;
       const r = rowMeta.of(row.t);
       const c = colMeta.of(row.t);
       seenRows.add(r);

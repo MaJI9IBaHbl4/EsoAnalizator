@@ -6,7 +6,7 @@
   "use strict";
 
   const {
-    SERIES, RANGE_LABELS, METRICS, numberFmt, timeFmt, clockFmt, dateFmt,
+    SERIES, RANGE_LABELS, METRICS, numberFmt, fmtValue, timeFmt, clockFmt, dateFmt,
     duration, state, decimate, el,
   } = ESO.core;
   const { fillDelta, sparkline, renderLegend, lineChart } = ESO.viz;
@@ -65,19 +65,21 @@
 
       const value = document.createElement("div");
       value.className = "tile__value";
-      value.textContent = numberFmt.format(last[tile.key]);
+      value.textContent = fmtValue(last[tile.key]);
 
       const foot = document.createElement("div");
       foot.className = "tile__foot";
 
       const deltas = document.createElement("div");
       deltas.className = "tile__deltas";
-      if (previous) {
+      // A change against a reading that does not exist is not zero change.
+      const known = (row) => Boolean(row) && row[tile.key] !== null;
+      if (known(previous) && known(last)) {
         deltas.appendChild(deltaLine(
           last[tile.key] - previous[tile.key], stepWindow, "tile__delta--step",
         ));
       }
-      if (rows.length > 1) {
+      if (rows.length > 1 && known(first) && known(last)) {
         deltas.appendChild(deltaLine(
           last[tile.key] - first[tile.key], RANGE_LABELS[state.hours], "tile__delta--range",
         ));
@@ -110,12 +112,14 @@
 
         const value = document.createElement("span");
         value.className = "cell-value";
-        value.textContent = numberFmt.format(row[key]);
+        value.textContent = fmtValue(row[key]);
 
         // Fixed-width so the values above it stay in a straight column.
         const delta = document.createElement("span");
         delta.className = "cell-delta delta";
-        if (previous) fillDelta(delta, row[key] - previous[key]);
+        if (previous && row[key] !== null && previous[key] !== null) {
+          fillDelta(delta, row[key] - previous[key]);
+        }
 
         td.append(value, delta);
         tr.appendChild(td);

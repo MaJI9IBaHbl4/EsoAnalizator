@@ -134,6 +134,14 @@ window.ESO = window.ESO || {};
     return response.json();
   }
 
+  /* An empty cell is a counter that was never recorded - not a zero. The
+     hand-collected history that predates the collector carries no
+     planned-outage column, and reading that as zero would invent a
+     measurement nobody took. */
+  const value = (raw) => (raw === undefined || raw === "" ? null : Number(raw));
+
+  const fmtValue = (v) => (v === null ? "–" : numberFmt.format(v));
+
   function parseCsv(text) {
     const lines = text.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
@@ -148,8 +156,8 @@ window.ESO = window.ESO || {};
       if (Number.isNaN(time)) continue;
       rows.push({
         t: time,
-        k: Number(row.k), c: Number(row.c),
-        n: Number(row.n), p: Number(row.p),
+        k: value(row.k), c: value(row.c),
+        n: value(row.n), p: value(row.p),
       });
     }
     return rows;
@@ -226,6 +234,7 @@ window.ESO = window.ESO || {};
     numberFmt, decimalFmt, timeFmt, clockFmt, dateFmt, monthFmt,
     duration, ago,
     localDate, fromLocal, weekdayIndex, hourOfDay,
+    fmtValue,
     state, loadIndex, parseCsv, monthsForRange, ensureMonths,
     rangeStart, rowsInRange, rowsInPreviousRange, decimate,
     el: (id) => document.getElementById(id),

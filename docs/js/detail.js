@@ -94,8 +94,10 @@
 
       const range = document.createElement("span");
       range.className = "tile__delta tile__delta--range";
-      range.textContent = `nuo ${numberFmt.format(Math.round(now[`${key}_min`]))}`
-        + ` iki ${numberFmt.format(Math.round(now[`${key}_max`]))}`;
+      range.textContent = now[`${key}_min`] === null
+        ? "nėra duomenų"
+        : `nuo ${numberFmt.format(Math.round(now[`${key}_min`]))}`
+          + ` iki ${numberFmt.format(Math.round(now[`${key}_max`]))}`;
       deltas.appendChild(range);
 
       foot.appendChild(deltas);
@@ -124,9 +126,16 @@
       ? `${AGGREGATIONS[config.aggregation].label.toLowerCase()}, juosta — min ir maks. kiekviename intervale`
       : "kiekvienas nuskaitymas";
 
-    const tickFormat = (t) => (granularity === "raw" || granularity === "hour"
-      ? clockFmt.format(new Date(t))
-      : granularity === "month" ? monthFmt.format(new Date(t)) : dateFmt.format(new Date(t)));
+    // The label has to follow the span, not the bucket size: hourly buckets
+    // across four days printed as bare clock times read as if they ran
+    // backwards, because the date they belong to was missing.
+    const span = points.length > 1 ? points[points.length - 1].t - points[0].t : 0;
+    const tickFormat = (t) => {
+      const moment = new Date(t);
+      if (span <= 36 * 3600 * 1000) return clockFmt.format(moment);
+      if (granularity === "month" || span > 400 * 24 * 3600 * 1000) return monthFmt.format(moment);
+      return dateFmt.format(moment);
+    };
 
     // Two passes on purpose. A chart measures its own width, and the grid
     // reflows every time a panel is added - drawing as we go would size the
@@ -233,7 +242,7 @@
       csv.push([
         bucketLabel(point.t, granularity),
         point.empty ? "" : point.count,
-        ...keys.map((key) => (point.empty ? "" : point[key].toFixed(2))),
+        ...keys.map((key) => (point[key] === null ? "" : point[key].toFixed(2))),
       ].join(","));
     }
 
@@ -290,7 +299,7 @@
 
       for (const value of [now[key], before[key]]) {
         const td = document.createElement("td");
-        td.textContent = decimalFmt.format(value);
+        td.textContent = value === null ? "–" : decimalFmt.format(value);
         tr.appendChild(td);
       }
 
@@ -308,12 +317,14 @@
       tr.appendChild(change);
 
       const peak = document.createElement("td");
-      peak.textContent = `${numberFmt.format(now[`${key}_max`])}`;
+      peak.textContent = now[`${key}_max`] === null
+        ? "–" : numberFmt.format(now[`${key}_max`]);
       tr.appendChild(peak);
 
       const peakAt = document.createElement("td");
       peakAt.className = "cell-muted";
-      peakAt.textContent = timeFmt.format(new Date(now[`${key}_peak_t`]));
+      peakAt.textContent = now[`${key}_peak_t`] === null
+        ? "–" : timeFmt.format(new Date(now[`${key}_peak_t`]));
       tr.appendChild(peakAt);
 
       body.appendChild(tr);
