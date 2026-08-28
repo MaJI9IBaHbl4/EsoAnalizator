@@ -4,4 +4,3 @@ __pycache__/
 .DS_Store
 collector/run.log
 .demo/
-demo.html

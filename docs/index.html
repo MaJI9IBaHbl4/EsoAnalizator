@@ -26,177 +26,63 @@
     Laikas — <span id="tz-note">Europe/Vilnius</span>.
   </p>
 
-  <div class="tabs" id="tabs" role="tablist" aria-label="Rodinys">
-    <button type="button" role="tab" data-tab="overview" aria-selected="true">Apžvalga</button>
-    <button type="button" role="tab" data-tab="detail" aria-selected="false">Detaliai</button>
-  </div>
-
   <div class="controls" role="group" aria-label="Filtrai">
-    <span class="controls__label">Laikotarpis</span>
     <div class="seg" id="range-picker" role="group" aria-label="Laikotarpis">
       <button type="button" data-hours="24" aria-pressed="true">24 val.</button>
       <button type="button" data-hours="168" aria-pressed="false">7 dienos</button>
       <button type="button" data-hours="720" aria-pressed="false">30 dienų</button>
-      <button type="button" data-hours="2160" aria-pressed="false">90 dienų</button>
       <button type="button" data-hours="0" aria-pressed="false">Viskas</button>
     </div>
-
-    <span class="controls__label detail-only hidden">Detalumas</span>
-    <div class="seg detail-only hidden" id="d-granularity" role="group" aria-label="Detalumas">
-      <button type="button" data-granularity="auto" aria-pressed="true">Auto</button>
-      <button type="button" data-granularity="raw" aria-pressed="false">Nuskaitymai</button>
-      <button type="button" data-granularity="hour" aria-pressed="false">Valanda</button>
-      <button type="button" data-granularity="day" aria-pressed="false">Diena</button>
-      <button type="button" data-granularity="week" aria-pressed="false">Savaitė</button>
-      <button type="button" data-granularity="month" aria-pressed="false">Mėnuo</button>
-    </div>
-
-    <span class="controls__label detail-only hidden">Rodiklis</span>
-    <div class="seg detail-only hidden" id="d-aggregation" role="group" aria-label="Rodiklis">
-      <button type="button" data-aggregation="avg" aria-pressed="true">Vidurkis</button>
-      <button type="button" data-aggregation="max" aria-pressed="false">Maks.</button>
-      <button type="button" data-aggregation="min" aria-pressed="false">Min.</button>
-      <button type="button" data-aggregation="last" aria-pressed="false">Paskutinis</button>
-    </div>
-
-    <span class="controls__label detail-only hidden">Metrikos</span>
-    <div class="chips detail-only hidden" id="d-metrics" role="group" aria-label="Metrikos">
-      <button type="button" data-metric="n" aria-pressed="true">
-        <span class="chip__dot" style="--key-color: var(--series-n)"></span>Atjungti dėl sutrikimų
-      </button>
-      <button type="button" data-metric="c" aria-pressed="true">
-        <span class="chip__dot" style="--key-color: var(--series-c)"></span>Sutrikimai
-      </button>
-      <button type="button" data-metric="k" aria-pressed="true">
-        <span class="chip__dot" style="--key-color: var(--series-k)"></span>Klientų pranešimai
-      </button>
-      <button type="button" data-metric="p" aria-pressed="true">
-        <span class="chip__dot" style="--key-color: var(--series-p)"></span>Atjungti dėl planinių darbų
-      </button>
-    </div>
-
     <span class="controls__spacer"></span>
-    <button type="button" class="ghost-btn overview-only" id="table-toggle" aria-expanded="false">Rodyti lentelę</button>
+    <button type="button" class="ghost-btn" id="table-toggle" aria-expanded="false">Rodyti lentelę</button>
   </div>
 
   <div id="content" class="hidden">
+    <section class="tiles" id="tiles" aria-label="Dabartinės reikšmės"></section>
 
-    <!-- ---------------- Apžvalga ---------------- -->
-    <div id="tab-overview" role="tabpanel">
-      <section class="tiles" id="tiles" aria-label="Dabartinės reikšmės"></section>
+    <section class="card">
+      <div class="card__head">
+        <span class="card__title">Atjungti klientai</span>
+        <span class="card__note">klientų</span>
+        <div class="legend" id="legend-clients"></div>
+      </div>
+      <svg class="plot" id="plot-clients" role="img" tabindex="0"
+           aria-label="Atjungtų klientų skaičiaus kitimo grafikas"></svg>
+      <div class="tooltip" id="tip-clients" role="status" aria-live="off"></div>
+    </section>
 
-      <section class="card">
-        <div class="card__head">
-          <span class="card__title">Atjungti klientai</span>
-          <span class="card__note">klientų</span>
-          <div class="legend" id="legend-clients"></div>
-        </div>
-        <svg class="plot" id="plot-clients" role="img" tabindex="0"
-             aria-label="Atjungtų klientų skaičiaus kitimo grafikas"></svg>
-        <div class="tooltip" id="tip-clients" role="status" aria-live="off"></div>
-      </section>
+    <section class="card">
+      <div class="card__head">
+        <span class="card__title">Klientų pranešimai ir sutrikimai</span>
+        <span class="card__note">įrašų</span>
+        <div class="legend" id="legend-events"></div>
+      </div>
+      <svg class="plot" id="plot-events" role="img" tabindex="0"
+           aria-label="Klientų pranešimų ir sutrikimų skaičiaus kitimo grafikas"></svg>
+      <div class="tooltip" id="tip-events" role="status" aria-live="off"></div>
+    </section>
 
-      <section class="card">
-        <div class="card__head">
-          <span class="card__title">Klientų pranešimai ir sutrikimai</span>
-          <span class="card__note">įrašų</span>
-          <div class="legend" id="legend-events"></div>
-        </div>
-        <svg class="plot" id="plot-events" role="img" tabindex="0"
-             aria-label="Klientų pranešimų ir sutrikimų skaičiaus kitimo grafikas"></svg>
-        <div class="tooltip" id="tip-events" role="status" aria-live="off"></div>
-      </section>
-
-      <section class="card hidden" id="table-card">
-        <div class="card__head">
-          <span class="card__title">Duomenų lentelė</span>
-          <span class="card__note" id="table-count"></span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Laikas</th>
-                <th scope="col">Klientų pranešimai</th>
-                <th scope="col">Sutrikimai</th>
-                <th scope="col">Atjungti (sutrikimai)</th>
-                <th scope="col">Atjungti (planiniai)</th>
-              </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-        <p class="table-note" id="table-note"></p>
-      </section>
-    </div>
-
-    <!-- ---------------- Detaliai ---------------- -->
-    <div id="tab-detail" class="hidden" role="tabpanel">
-      <section class="tiles" id="d-tiles" aria-label="Laikotarpio rodikliai"></section>
-
-      <section class="card">
-        <div class="card__head">
-          <span class="card__title">Kitimas laike</span>
-          <span class="card__note" id="d-chart-note"></span>
-          <span class="card__note" id="d-granularity-note"></span>
-        </div>
-        <div class="multiples" id="d-charts"></div>
-      </section>
-
-      <section class="card">
-        <div class="card__head">
-          <span class="card__title">Matrica</span>
-          <span class="card__note" id="d-heat-note"></span>
-          <div class="axis-picker">
-            <label>Eilutės
-              <select id="d-heat-rows" aria-label="Matricos eilutės"></select>
-            </label>
-            <label>Stulpeliai
-              <select id="d-heat-cols" aria-label="Matricos stulpeliai"></select>
-            </label>
-          </div>
-        </div>
-        <div class="heat-legend" id="d-heat-legend"></div>
-        <div class="table-wrap" id="d-heat"></div>
-      </section>
-
-      <section class="card">
-        <div class="card__head">
-          <span class="card__title">Suvestinė pagal laikotarpius</span>
-          <span class="card__note" id="d-pivot-count"></span>
-          <button type="button" class="ghost-btn ghost-btn--small" id="d-copy-csv">Kopijuoti CSV</button>
-        </div>
-        <div class="table-wrap">
-          <table class="pivot">
-            <thead id="d-pivot-head"></thead>
-            <tbody id="d-pivot-body"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card__head">
-          <span class="card__title">Palyginimas su ankstesniu laikotarpiu</span>
-          <span class="card__note" id="d-compare-note"></span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Metrika</th>
-                <th scope="col">Dabar (vid.)</th>
-                <th scope="col">Anksčiau (vid.)</th>
-                <th scope="col">Pokytis</th>
-                <th scope="col">Pikas dabar</th>
-                <th scope="col">Piko laikas</th>
-              </tr>
-            </thead>
-            <tbody id="d-compare-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-
+    <section class="card hidden" id="table-card">
+      <div class="card__head">
+        <span class="card__title">Duomenų lentelė</span>
+        <span class="card__note" id="table-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Laikas</th>
+              <th scope="col">Klientų pranešimai</th>
+              <th scope="col">Sutrikimai</th>
+              <th scope="col">Atjungti (sutrikimai)</th>
+              <th scope="col">Atjungti (planiniai)</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <p class="table-note" id="table-note"></p>
+    </section>
   </div>
 
   <div class="card" id="placeholder">
@@ -209,11 +95,6 @@
   </footer>
 
 </div>
-<script src="js/core.js"></script>
-<script src="js/agg.js"></script>
-<script src="js/viz.js"></script>
-<script src="js/overview.js"></script>
-<script src="js/detail.js"></script>
-<script src="js/main.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
