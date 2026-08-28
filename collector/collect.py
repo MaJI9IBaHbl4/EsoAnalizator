@@ -39,10 +39,22 @@ from pathlib import Path
 PAGE_URL = "https://www.eso.lt/atjungimai-planiniai-neplaniniai"
 URL = f"{PAGE_URL}/statdata"
 
+# Say who we are and where to complain, rather than dressing up as Chrome.
+# The endpoint answers this just as readily, so there is nothing to gain from
+# the disguise and something to lose: a site operator who wants to rate-limit
+# or contact us should be able to.
 USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    "ESOanalizator/1.0 (+https://github.com/MaJI9IBaHbl4/EsoAnalizator) "
+    "renka viesa atjungimu statistika kas 15 min."
 )
+
+# https://www.eso.lt/robots.txt asks for 10 seconds between requests. The
+# normal path makes a single request per run, a quarter of an hour apart, so
+# it is far inside that; the fallback below has to wait explicitly.
+CRAWL_DELAY_SECONDS = 10
+
+HTML_ACCEPT = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"
+JSON_ACCEPT = "application/json, text/plain, */*"
 
 # CSV column order. Keys map to the endpoint's single-letter buckets.
 FIELDS = ["ts_utc", "k", "c", "n", "p", "server_ts"]
@@ -94,20 +106,28 @@ def describe(error: Exception) -> str:
     return str(error)
 
 
+def fetch_once(url: str, timeout: int, warm_up: bool) -> dict:
+    """One attempt. With `warm_up`, first load the page the endpoint belongs to,
+    exactly as a browser does, for hosts that refuse a cold call."""
+    opener = build_opener()
+    if warm_up:
+        get(opener, PAGE_URL, HTML_ACCEPT, timeout)
+        time.sleep(CRAWL_DELAY_SECONDS)
+    return json.loads(get(opener, url, JSON_ACCEPT, timeout).decode("utf-8"))
+
+
 def fetch(url: str, attempts: int = 4, timeout: int = 30) -> dict:
     """GET the endpoint, retrying with exponential backoff on transient errors.
 
-    Each attempt first loads the map page, exactly as a browser does: the
-    endpoint is an XHR of that page and rejects callers that arrive cold.
+    The first attempt is the plain one: a single request per run, which is the
+    lightest thing we can ask of the site. Only if that is refused do we repeat
+    the browser's own sequence - page first, then the XHR - which costs an extra
+    40 KB and a mandated pause, so it is a fallback and not the default.
     """
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
-        opener = build_opener()
         try:
-            get(opener, PAGE_URL, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8", timeout)
-            payload = json.loads(
-                get(opener, url, "application/json, text/plain, */*", timeout).decode("utf-8")
-            )
+            payload = fetch_once(url, timeout, warm_up=attempt > 1)
             break
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as error:
             last_error = error
