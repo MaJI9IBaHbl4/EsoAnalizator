@@ -162,13 +162,35 @@
     return { max: 10 * magnitude * steps, step: 10 * magnitude };
   }
 
-  function ago(ms) {
-    const minutes = Math.round(ms / 60000);
-    if (minutes < 1) return "ką tik";
-    if (minutes < 60) return `prieš ${minutes} min.`;
+  /** "15 min." / "3 val." / "2 d." - the coarsest unit that still reads right. */
+  function duration(ms) {
+    const minutes = Math.max(1, Math.round(ms / 60000));
+    if (minutes < 60) return `${minutes} min.`;
     const hours = Math.round(minutes / 60);
-    if (hours < 24) return `prieš ${hours} val.`;
-    return `prieš ${Math.round(hours / 24)} d.`;
+    if (hours < 24) return `${hours} val.`;
+    return `${Math.round(hours / 24)} d.`;
+  }
+
+  function ago(ms) {
+    if (ms < 60000) return "ką tik";
+    return `prieš ${duration(ms)}`;
+  }
+
+  /**
+   * Signed delta line. `window` names the span it covers, so the two deltas on
+   * a tile can never be mistaken for each other.
+   */
+  function deltaLine(change, window, className) {
+    const span = document.createElement("span");
+    span.className = `tile__delta ${className}`;
+    if (change === 0) {
+      span.textContent = `be pokyčių per ${window}`;
+      return span;
+    }
+    span.classList.add(change > 0 ? "tile__delta--up" : "tile__delta--down");
+    const sign = change > 0 ? "+" : "−";
+    span.textContent = `${sign}${numberFmt.format(Math.abs(change))} per ${window}`;
+    return span;
   }
 
   /* ---------------- stat tiles ---------------- */
@@ -180,6 +202,14 @@
 
     const last = rows[rows.length - 1];
     const first = rows[0];
+
+    // The step delta is about the freshest data, so it looks at the sample
+    // before `last` in the full series - which may pre-date the selected range.
+    const lastIndex = state.rows.indexOf(last);
+    const previous = lastIndex > 0 ? state.rows[lastIndex - 1] : null;
+    // Never hard-code 15 minutes: a sleeping machine leaves real gaps, and the
+    // label has to say how long the step actually was.
+    const stepWindow = previous ? duration(last.t - previous.t) : null;
 
     for (const tile of TILES) {
       const meta = SERIES[tile.key];
@@ -200,20 +230,20 @@
       const foot = document.createElement("div");
       foot.className = "tile__foot";
 
-      const change = last[tile.key] - first[tile.key];
-      const delta = document.createElement("span");
-      delta.className = "tile__delta";
+      const deltas = document.createElement("div");
+      deltas.className = "tile__deltas";
+      if (previous) {
+        deltas.appendChild(deltaLine(
+          last[tile.key] - previous[tile.key], stepWindow, "tile__delta--step",
+        ));
+      }
       if (rows.length > 1) {
-        if (change === 0) {
-          delta.textContent = `be pokyčių per ${RANGE_LABELS[state.hours]}`;
-        } else {
-          delta.classList.add(change > 0 ? "tile__delta--up" : "tile__delta--down");
-          const sign = change > 0 ? "+" : "−";
-          delta.textContent = `${sign}${numberFmt.format(Math.abs(change))} per ${RANGE_LABELS[state.hours]}`;
-        }
+        deltas.appendChild(deltaLine(
+          last[tile.key] - first[tile.key], RANGE_LABELS[state.hours], "tile__delta--range",
+        ));
       }
 
-      foot.append(delta, sparkline(rows, tile.key, meta.color));
+      foot.append(deltas, sparkline(rows, tile.key, meta.color));
       card.append(label, value, foot);
       host.appendChild(card);
     }
