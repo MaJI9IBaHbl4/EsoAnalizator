@@ -12,17 +12,17 @@
      `n` stays blue whichever chart or range it appears in. Slots 1-4 of the
      validated categorical order. */
   const SERIES = {
-    n: { name: "Отключены из-за сбоев", color: "var(--series-n)" },
-    p: { name: "Отключены планово", color: "var(--series-p)" },
-    k: { name: "Сообщения клиентов", color: "var(--series-k)" },
-    c: { name: "Сбои", color: "var(--series-c)" },
+    n: { name: "Atjungti dėl sutrikimų", color: "var(--series-n)" },
+    p: { name: "Atjungti dėl planinių darbų", color: "var(--series-p)" },
+    k: { name: "Klientų pranešimai", color: "var(--series-k)" },
+    c: { name: "Sutrikimai", color: "var(--series-c)" },
   };
 
   const TILES = [
-    { key: "n", label: "Отключены из-за сбоев", hero: true },
-    { key: "c", label: "Сбои" },
-    { key: "k", label: "Сообщения клиентов" },
-    { key: "p", label: "Отключены из-за плановых работ" },
+    { key: "n", label: "Atjungti dėl sutrikimų", hero: true },
+    { key: "c", label: "Sutrikimai" },
+    { key: "k", label: "Klientų pranešimai" },
+    { key: "p", label: "Atjungti dėl planinių darbų" },
   ];
 
   const CHARTS = [
@@ -30,19 +30,19 @@
     { plot: "plot-events", tip: "tip-events", legend: "legend-events", keys: ["k", "c"] },
   ];
 
-  const RANGE_LABELS = { 24: "24 ч", 168: "7 дней", 720: "30 дней", 0: "всё время" };
+  const RANGE_LABELS = { 24: "24 val.", 168: "7 dienas", 720: "30 dienų", 0: "visą laiką" };
 
   const MAX_POINTS = 2000; // beyond this the line is stride-sampled for rendering
   const REFRESH_MS = 5 * 60 * 1000;
 
-  const numberFmt = new Intl.NumberFormat("ru-RU");
-  const timeFmt = new Intl.DateTimeFormat("ru-RU", {
+  const numberFmt = new Intl.NumberFormat("lt-LT");
+  const timeFmt = new Intl.DateTimeFormat("lt-LT", {
     timeZone: TZ, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
   });
-  const clockFmt = new Intl.DateTimeFormat("ru-RU", {
+  const clockFmt = new Intl.DateTimeFormat("lt-LT", {
     timeZone: TZ, hour: "2-digit", minute: "2-digit",
   });
-  const dateFmt = new Intl.DateTimeFormat("ru-RU", {
+  const dateFmt = new Intl.DateTimeFormat("lt-LT", {
     timeZone: TZ, day: "2-digit", month: "2-digit",
   });
 
@@ -164,11 +164,11 @@
 
   function ago(ms) {
     const minutes = Math.round(ms / 60000);
-    if (minutes < 1) return "только что";
-    if (minutes < 60) return `${minutes} мин назад`;
+    if (minutes < 1) return "ką tik";
+    if (minutes < 60) return `prieš ${minutes} min.`;
     const hours = Math.round(minutes / 60);
-    if (hours < 24) return `${hours} ч назад`;
-    return `${Math.round(hours / 24)} дн назад`;
+    if (hours < 24) return `prieš ${hours} val.`;
+    return `prieš ${Math.round(hours / 24)} d.`;
   }
 
   /* ---------------- stat tiles ---------------- */
@@ -205,11 +205,11 @@
       delta.className = "tile__delta";
       if (rows.length > 1) {
         if (change === 0) {
-          delta.textContent = `без изменений за ${RANGE_LABELS[state.hours]}`;
+          delta.textContent = `be pokyčių per ${RANGE_LABELS[state.hours]}`;
         } else {
           delta.classList.add(change > 0 ? "tile__delta--up" : "tile__delta--down");
           const sign = change > 0 ? "+" : "−";
-          delta.textContent = `${sign}${numberFmt.format(Math.abs(change))} за ${RANGE_LABELS[state.hours]}`;
+          delta.textContent = `${sign}${numberFmt.format(Math.abs(change))} per ${RANGE_LABELS[state.hours]}`;
         }
       }
 
@@ -273,7 +273,7 @@
 
     if (rows.length < 2) {
       node("text", { x: width / 2, y: height / 2, "text-anchor": "middle" }, svg)
-        .appendChild(document.createTextNode("Мало точек для графика — подождите следующих замеров"));
+        .appendChild(document.createTextNode("Per mažai taškų grafikui — palaukite kitų nuskaitymų"));
       return;
     }
 
@@ -451,9 +451,9 @@
       });
       body.appendChild(tr);
     }
-    el("table-count").textContent = `${numberFmt.format(rows.length)} замеров за ${RANGE_LABELS[state.hours]}`;
+    el("table-count").textContent = `${numberFmt.format(rows.length)} įrašų per ${RANGE_LABELS[state.hours]}`;
     el("table-note").textContent = rows.length > shown.length
-      ? `Показаны последние ${shown.length}. Полная история — в CSV-файлах в docs/data/.`
+      ? `Rodomi paskutiniai ${shown.length}. Visa istorija — CSV failuose docs/data/.`
       : "";
   }
 
@@ -468,8 +468,8 @@
       content.classList.add("hidden");
       placeholder.classList.remove("hidden");
       el("placeholder-text").textContent = state.rows.length
-        ? "За выбранный период замеров нет — попробуйте период пошире."
-        : "Пока нет ни одного замера.";
+        ? "Pasirinktu laikotarpiu įrašų nėra — pabandykite platesnį laikotarpį."
+        : "Kol kas nėra nė vieno įrašo.";
       return;
     }
 
@@ -487,7 +487,7 @@
     const meta = el("freshness");
     meta.textContent = "";
     meta.append(
-      document.createTextNode("обновлено "),
+      document.createTextNode("atnaujinta "),
       Object.assign(document.createElement("b"), { textContent: ago(Date.now() - last.t) }),
       document.createTextNode(` · ${timeFmt.format(new Date(last.t))}`),
     );
@@ -505,7 +505,7 @@
         el("content").classList.add("hidden");
         el("placeholder").classList.remove("hidden");
         el("placeholder-text").textContent =
-          "Данных ещё нет. Запустите workflow «Collect ESO stats» или локально: python collector/collect.py";
+          "Duomenų dar nėra. Paleiskite rinkiklį: python collector/collect.py";
       }
       console.error(error);
     } finally {
@@ -534,7 +534,7 @@
     state.tableOpen = !state.tableOpen;
     el("table-card").classList.toggle("hidden", !state.tableOpen);
     el("table-toggle").setAttribute("aria-expanded", String(state.tableOpen));
-    el("table-toggle").textContent = state.tableOpen ? "Скрыть таблицу" : "Показать таблицу";
+    el("table-toggle").textContent = state.tableOpen ? "Slėpti lentelę" : "Rodyti lentelę";
     if (state.tableOpen) renderTable(rowsInRange());
   });
 

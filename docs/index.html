@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ru">
+<html lang="lt">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ESO analizatorius — статистика отключений</title>
-<meta name="description" content="История статистики отключений электроэнергии ESO (Литва): сообщения клиентов, сбои, отключённые клиенты.">
+<title>ESO analizatorius — atjungimų statistika</title>
+<meta name="description" content="Elektros tiekimo atjungimų statistikos istorija (ESO, Lietuva): klientų pranešimai, sutrikimai, atjungti klientai.">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>⚡</text></svg>">
 </head>
@@ -14,68 +14,68 @@
   <div class="masthead">
     <h1>ESO analizatorius</h1>
     <span class="masthead__spacer"></span>
-    <span class="masthead__meta" id="freshness">загрузка…</span>
-    <button type="button" class="ghost-btn" id="theme-toggle" aria-label="Переключить тему">Тема</button>
+    <span class="masthead__meta" id="freshness">kraunama…</span>
+    <button type="button" class="ghost-btn" id="theme-toggle" aria-label="Perjungti temą">Tema</button>
   </div>
 
   <p class="subtitle">
-    История счётчиков со страницы
+    Skaitiklių istorija iš puslapio
     <a href="https://www.eso.lt/atjungimai-planiniai-neplaniniai" target="_blank" rel="noopener">eso.lt · atjungimai</a>.
-    Снимок берётся каждые 15 минут. Это <b>моментальные</b> значения (сколько активно
-    прямо сейчас), а не накопительный итог — они и растут, и падают.
-    Время — <span id="tz-note">Europe/Vilnius</span>.
+    Duomenys nuskaitomi kas 15 minučių. Tai <b>momentinės</b> reikšmės (kiek
+    aktyvu šiuo metu), o ne sukauptos sumos — jos tiek auga, tiek mažėja.
+    Laikas — <span id="tz-note">Europe/Vilnius</span>.
   </p>
 
-  <div class="controls" role="group" aria-label="Фильтры">
-    <div class="seg" id="range-picker" role="group" aria-label="Период">
-      <button type="button" data-hours="24" aria-pressed="true">24 часа</button>
-      <button type="button" data-hours="168" aria-pressed="false">7 дней</button>
-      <button type="button" data-hours="720" aria-pressed="false">30 дней</button>
-      <button type="button" data-hours="0" aria-pressed="false">Всё</button>
+  <div class="controls" role="group" aria-label="Filtrai">
+    <div class="seg" id="range-picker" role="group" aria-label="Laikotarpis">
+      <button type="button" data-hours="24" aria-pressed="true">24 val.</button>
+      <button type="button" data-hours="168" aria-pressed="false">7 dienos</button>
+      <button type="button" data-hours="720" aria-pressed="false">30 dienų</button>
+      <button type="button" data-hours="0" aria-pressed="false">Viskas</button>
     </div>
     <span class="controls__spacer"></span>
-    <button type="button" class="ghost-btn" id="table-toggle" aria-expanded="false">Показать таблицу</button>
+    <button type="button" class="ghost-btn" id="table-toggle" aria-expanded="false">Rodyti lentelę</button>
   </div>
 
   <div id="content" class="hidden">
-    <section class="tiles" id="tiles" aria-label="Текущие значения"></section>
+    <section class="tiles" id="tiles" aria-label="Dabartinės reikšmės"></section>
 
     <section class="card">
       <div class="card__head">
-        <span class="card__title">Отключённые клиенты</span>
-        <span class="card__note">человек</span>
+        <span class="card__title">Atjungti klientai</span>
+        <span class="card__note">klientų</span>
         <div class="legend" id="legend-clients"></div>
       </div>
       <svg class="plot" id="plot-clients" role="img" tabindex="0"
-           aria-label="График числа отключённых клиентов во времени"></svg>
+           aria-label="Atjungtų klientų skaičiaus kitimo grafikas"></svg>
       <div class="tooltip" id="tip-clients" role="status" aria-live="off"></div>
     </section>
 
     <section class="card">
       <div class="card__head">
-        <span class="card__title">Сообщения клиентов и сбои</span>
-        <span class="card__note">записей</span>
+        <span class="card__title">Klientų pranešimai ir sutrikimai</span>
+        <span class="card__note">įrašų</span>
         <div class="legend" id="legend-events"></div>
       </div>
       <svg class="plot" id="plot-events" role="img" tabindex="0"
-           aria-label="График числа сообщений клиентов и сбоев во времени"></svg>
+           aria-label="Klientų pranešimų ir sutrikimų skaičiaus kitimo grafikas"></svg>
       <div class="tooltip" id="tip-events" role="status" aria-live="off"></div>
     </section>
 
     <section class="card hidden" id="table-card">
       <div class="card__head">
-        <span class="card__title">Таблица замеров</span>
+        <span class="card__title">Duomenų lentelė</span>
         <span class="card__note" id="table-count"></span>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th scope="col">Время</th>
-              <th scope="col">Сообщения клиентов</th>
-              <th scope="col">Сбои</th>
-              <th scope="col">Отключены (сбои)</th>
-              <th scope="col">Отключены (план)</th>
+              <th scope="col">Laikas</th>
+              <th scope="col">Klientų pranešimai</th>
+              <th scope="col">Sutrikimai</th>
+              <th scope="col">Atjungti (sutrikimai)</th>
+              <th scope="col">Atjungti (planiniai)</th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
@@ -86,12 +86,12 @@
   </div>
 
   <div class="card" id="placeholder">
-    <p class="empty" id="placeholder-text">Загрузка данных…</p>
+    <p class="empty" id="placeholder-text">Kraunami duomenys…</p>
   </div>
 
   <footer>
-    Данные: <a href="https://www.eso.lt/atjungimai-planiniai-neplaniniai" target="_blank" rel="noopener">ESO</a>.
-    Сбор — GitHub Actions, CSV лежит в <code>docs/data/</code>.
+    Duomenys: <a href="https://www.eso.lt/atjungimai-planiniai-neplaniniai" target="_blank" rel="noopener">ESO</a>.
+    Nuskaitoma kas 15 min., CSV — <code>docs/data/</code>.
   </footer>
 
 </div>
