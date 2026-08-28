@@ -1,11 +1,17 @@
 name: Collect ESO stats
 
 on:
-  schedule:
-    # Every 15 minutes -- the refresh rate ESO states on the page itself.
-    # GitHub runs scheduled workflows on a best-effort basis, so expect the
-    # occasional late or skipped run; each sample carries its own UTC stamp.
-    - cron: "*/15 * * * *"
+  # The schedule is deliberately off. eso.lt sits behind Cloudflare, which
+  # answers requests from GitHub's runners with the "Just a moment..." JS
+  # challenge (HTTP 403) -- both for the JSON endpoint and for the page it
+  # belongs to. The same request from a home connection is served normally,
+  # so collection runs there instead; see README, "Где работает сбор".
+  #
+  # Re-enable this if the collector ever gets a host whose IP the site
+  # serves: uncomment the two lines below, nothing else changes.
+  #
+  # schedule:
+  #   - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
