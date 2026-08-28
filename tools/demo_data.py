@@ -72,8 +72,9 @@ def build(out_dir: Path, rows: list[dict]) -> None:
     data_dir = out_dir / "data"
     data_dir.mkdir(parents=True)
 
-    for name in ("index.html", "app.js", "style.css"):
+    for name in ("index.html", "style.css"):
         shutil.copy(DOCS / name, out_dir / name)
+    shutil.copytree(DOCS / "js", out_dir / "js")
 
     months: dict[str, list[dict]] = {}
     for row in rows:

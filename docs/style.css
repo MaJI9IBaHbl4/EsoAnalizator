@@ -24,6 +24,18 @@
   --delta-up: #b4442f;
   --delta-down: #006300;
 
+  /* Sequential ramp for the matrix: one hue, light to dark. Near-zero is the
+     step closest to the surface, so low cells recede instead of shouting. */
+  --heat-0: #cde2fb;
+  --heat-1: #9ec5f4;
+  --heat-2: #6da7ec;
+  --heat-3: #3987e5;
+  --heat-4: #256abf;
+  --heat-5: #184f95;
+  --heat-6: #0d366b;
+  --heat-ink-shallow: #0b0b0b;
+  --heat-ink-deep: #ffffff;
+
   --radius: 12px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -50,6 +62,16 @@
 
     --delta-up: #e66767;
     --delta-down: #0ca30c;
+
+    --heat-0: #0d366b;
+    --heat-1: #184f95;
+    --heat-2: #256abf;
+    --heat-3: #3987e5;
+    --heat-4: #6da7ec;
+    --heat-5: #9ec5f4;
+    --heat-6: #cde2fb;
+    --heat-ink-shallow: #ffffff;
+    --heat-ink-deep: #0b0b0b;
   }
 }
 
@@ -73,6 +95,16 @@
 
   --delta-up: #e66767;
   --delta-down: #0ca30c;
+
+  --heat-0: #0d366b;
+  --heat-1: #184f95;
+  --heat-2: #256abf;
+  --heat-3: #3987e5;
+  --heat-4: #6da7ec;
+  --heat-5: #9ec5f4;
+  --heat-6: #cde2fb;
+  --heat-ink-shallow: #ffffff;
+  --heat-ink-deep: #0b0b0b;
 }
 
 * { box-sizing: border-box; }
@@ -134,6 +166,10 @@ h1 {
 
 .seg {
   display: inline-flex;
+  /* Wraps rather than scrolls: a segmented control that runs off the edge of a
+     phone hides its last option behind an affordance nobody sees. */
+  flex-wrap: wrap;
+  max-width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -401,7 +437,10 @@ tbody tr:hover { background: var(--hover-wash); }
 
 .table-note { font-size: 12.5px; color: var(--text-muted); margin: 8px 2px 0; }
 
-.hidden { display: none; }
+/* !important on purpose: this utility has to beat any component rule that
+   sets `display`, whatever order the two end up in. Without it a later
+   `.chips { display: flex }` silently unhides the element. */
+.hidden { display: none !important; }
 
 .empty {
   padding: 40px 18px;
@@ -427,4 +466,227 @@ footer a { color: inherit; }
 @media (max-width: 600px) {
   body { padding: 16px 12px 40px; }
   .tile--hero .tile__value { font-size: 40px; }
+}
+
+/* ---- tabs ---- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.tabs button:hover { color: var(--text-primary); }
+
+.tabs button[aria-selected="true"] {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--series-n);
+}
+
+/* ---- controls ---- */
+
+.controls__label {
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.chips button:hover { background: var(--hover-wash); color: var(--text-primary); }
+
+/* Unselected chips keep their dot but drop the fill, so the metric's colour
+   still identifies the chip while the state stays unambiguous. */
+.chips button[aria-pressed="false"] { opacity: 0.55; }
+.chips button[aria-pressed="true"] {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.chip__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--key-color);
+  flex: none;
+}
+
+.ghost-btn--small { font-size: 12.5px; padding: 5px 12px; }
+
+/* ---- KPI tiles on the detail tab ---- */
+
+.tile__value--kpi { font-size: 34px; }
+
+.tile__caption {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: -4px;
+}
+
+.swatch--inline {
+  display: inline-block;
+  margin: 0 7px 0 0;
+  vertical-align: 0;
+}
+
+/* ---- chart extras ---- */
+
+/* A wash, never a saturated block: the band is context behind the line. */
+.plot .band { opacity: 0.12; stroke: none; }
+
+.legend__band {
+  width: 16px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--key-color);
+  opacity: 0.28;
+}
+
+.tooltip__range {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  padding-left: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- matrix ---- */
+
+.axis-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-left: auto;
+}
+
+.axis-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.axis-picker select {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 4px 8px;
+}
+
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.heat-legend__scale { display: flex; }
+
+.heat-legend__scale span {
+  width: 22px;
+  height: 10px;
+}
+
+.heat-legend__scale span:first-child { border-radius: 3px 0 0 3px; }
+.heat-legend__scale span:last-child { border-radius: 0 3px 3px 0; }
+
+table.heat { border-collapse: separate; border-spacing: 2px; width: auto; }
+
+table.heat th {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border: 0;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+table.heat thead th { text-align: center; }
+table.heat tbody th { text-align: right; }
+
+table.heat td {
+  border: 0;
+  border-radius: 4px;
+  padding: 5px 7px;
+  min-width: 40px;
+  text-align: center;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The ink flips with the ramp, not with the theme name: on the light surface
+   the deep end is dark, on the dark surface it is the light end. */
+.heat--shallow { color: var(--heat-ink-shallow); }
+.heat--deep { color: var(--heat-ink-deep); }
+.heat--none { background: var(--hover-wash); }
+
+/* ---- pivot table ---- */
+
+.pivot tbody tr.row--empty td { color: var(--text-muted); }
+
+.pivot tbody tr.row--total td {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--axis);
+  font-weight: 600;
+}
+
+.cell-muted { color: var(--text-muted); }
+
+/* ---- small multiples ---- */
+
+.multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 4px 24px;
+}
+
+/* Positioned: each panel's tooltip is placed against its own chart. */
+.multiple { position: relative; min-width: 0; }
+
+.multiple__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 6px 2px 0;
 }
