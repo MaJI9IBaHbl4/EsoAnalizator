@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESO analizatorius — статистика отключений</title>
+<meta name="description" content="История статистики отключений электроэнергии ESO (Литва): сообщения клиентов, сбои, отключённые клиенты.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>⚡</text></svg>">
+</head>
+<body>
+<div class="shell">
+
+  <div class="masthead">
+    <h1>ESO analizatorius</h1>
+    <span class="masthead__spacer"></span>
+    <span class="masthead__meta" id="freshness">загрузка…</span>
+    <button type="button" class="ghost-btn" id="theme-toggle" aria-label="Переключить тему">Тема</button>
+  </div>
+
+  <p class="subtitle">
+    История счётчиков со страницы
+    <a href="https://www.eso.lt/atjungimai-planiniai-neplaniniai" target="_blank" rel="noopener">eso.lt · atjungimai</a>.
+    Снимок берётся каждые 15 минут. Это <b>моментальные</b> значения (сколько активно
+    прямо сейчас), а не накопительный итог — они и растут, и падают.
+    Время — <span id="tz-note">Europe/Vilnius</span>.
+  </p>
+
+  <div class="controls" role="group" aria-label="Фильтры">
+    <div class="seg" id="range-picker" role="group" aria-label="Период">
+      <button type="button" data-hours="24" aria-pressed="true">24 часа</button>
+      <button type="button" data-hours="168" aria-pressed="false">7 дней</button>
+      <button type="button" data-hours="720" aria-pressed="false">30 дней</button>
+      <button type="button" data-hours="0" aria-pressed="false">Всё</button>
+    </div>
+    <span class="controls__spacer"></span>
+    <button type="button" class="ghost-btn" id="table-toggle" aria-expanded="false">Показать таблицу</button>
+  </div>
+
+  <div id="content" class="hidden">
+    <section class="tiles" id="tiles" aria-label="Текущие значения"></section>
+
+    <section class="card">
+      <div class="card__head">
+        <span class="card__title">Отключённые клиенты</span>
+        <span class="card__note">человек</span>
+        <div class="legend" id="legend-clients"></div>
+      </div>
+      <svg class="plot" id="plot-clients" role="img" tabindex="0"
+           aria-label="График числа отключённых клиентов во времени"></svg>
+      <div class="tooltip" id="tip-clients" role="status" aria-live="off"></div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <span class="card__title">Сообщения клиентов и сбои</span>
+        <span class="card__note">записей</span>
+        <div class="legend" id="legend-events"></div>
+      </div>
+      <svg class="plot" id="plot-events" role="img" tabindex="0"
+           aria-label="График числа сообщений клиентов и сбоев во времени"></svg>
+      <div class="tooltip" id="tip-events" role="status" aria-live="off"></div>
+    </section>
+
+    <section class="card hidden" id="table-card">
+      <div class="card__head">
+        <span class="card__title">Таблица замеров</span>
+        <span class="card__note" id="table-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Время</th>
+              <th scope="col">Сообщения клиентов</th>
+              <th scope="col">Сбои</th>
+              <th scope="col">Отключены (сбои)</th>
+              <th scope="col">Отключены (план)</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <p class="table-note" id="table-note"></p>
+    </section>
+  </div>
+
+  <div class="card" id="placeholder">
+    <p class="empty" id="placeholder-text">Загрузка данных…</p>
+  </div>
+
+  <footer>
+    Данные: <a href="https://www.eso.lt/atjungimai-planiniai-neplaniniai" target="_blank" rel="noopener">ESO</a>.
+    Сбор — GitHub Actions, CSV лежит в <code>docs/data/</code>.
+  </footer>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

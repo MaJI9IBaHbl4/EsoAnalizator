@@ -1,0 +1,19 @@
+{
+  "source": "https://www.eso.lt/atjungimai-planiniai-neplaniniai/statdata",
+  "labels": {
+    "k": "Klientu pranesimu skaicius",
+    "c": "Sutrikimu skaicius",
+    "n": "Del sutrikimu atjungtu klientu skaicius",
+    "p": "Del planiniu darbu atjungtu klientu skaicius"
+  },
+  "generated_at": "2026-08-28T07:50:34Z",
+  "total_rows": 4,
+  "months": [
+    {
+      "file": "2026-08.csv",
+      "rows": 4,
+      "first": "2026-08-28T07:45:15Z",
+      "last": "2026-08-28T07:50:34Z"
+    }
+  ]
+}

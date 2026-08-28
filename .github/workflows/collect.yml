@@ -1,0 +1,50 @@
+name: Collect ESO stats
+
+on:
+  schedule:
+    # Every 15 minutes -- the refresh rate ESO states on the page itself.
+    # GitHub runs scheduled workflows on a best-effort basis, so expect the
+    # occasional late or skipped run; each sample carries its own UTC stamp.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch snapshot
+        run: python collector/collect.py
+
+      - name: Commit snapshot
+        run: |
+          if [ -z "$(git status --porcelain docs/data)" ]; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git config user.name "eso-collector[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data
+          git commit -m "data: snapshot $(date -u '+%Y-%m-%d %H:%M') UTC"
+          # A concurrent run (or a manual push) can land first; rebase and retry.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} failed, retrying"
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not push snapshot after 3 attempts"
+          exit 1
