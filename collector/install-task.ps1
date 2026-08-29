@@ -10,7 +10,8 @@
 [CmdletBinding()]
 param(
     [string]$TaskName = 'ESO analizatorius - collect',
-    [int]$IntervalMinutes = 15,
+    # The source recomputes its counters every five minutes; see README.
+    [int]$IntervalMinutes = 5,
     [switch]$Uninstall
 )
 
