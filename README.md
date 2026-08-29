@@ -86,8 +86,12 @@ powershell -ExecutionPolicy Bypass -File collector\install-task.ps1
 ```
 
 Регистрирует задачу планировщика «ESO analizatorius - collect»: каждые
-15 минут `run_hidden.vbs` → `run_local.ps1` → снимок, коммит, push. Окно
-консоли не появляется. Лог — `collector/run.log` (в git не попадает).
+5 минут `run_hidden.vbs` → `run_local.ps1` → снимок. Окно консоли не
+появляется. Лог — `collector/run.log` (в git не попадает).
+
+Сбор и публикация идут на разных часах: снимок берётся каждые 5 минут, а
+коммит с push — примерно раз в 15, по три снимка за раз. Причина в лимите
+GitHub Pages: 10 сборок в час, а каждый push запускает сборку.
 
 ```powershell
 Start-ScheduledTask -TaskName 'ESO analizatorius - collect'   # прогнать сейчас
@@ -98,8 +102,12 @@ powershell -ExecutionPolicy Bypass -File collector\install-task.ps1 -Uninstall
 Задача выполняется от вашего пользователя и только когда вы вошли в систему —
 иначе `git push` не получит доступ к сохранённым учётным данным Git.
 
-Частота меняется параметром: `install-task.ps1 -IntervalMinutes 10`. Чаще, чем
-обновляется сам ESO (15 минут), смысла мало.
+Частота меняется параметром: `install-task.ps1 -IntervalMinutes 10`.
+
+**Настоящий такт источника — 5 минут, а не 15.** Замер показал: серверная
+метка `timestamp` сдвигается ровно каждые ~300 секунд, и вместе с ней
+пересчитывается `n`. Счётчик `c` при этом меняется непрерывно, раз в
+30–60 секунд, независимо от кэша.
 
 ## Вручную
 
