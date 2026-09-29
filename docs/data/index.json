@@ -6,8 +6,8 @@
     "n": "Del sutrikimu atjungtu klientu skaicius",
     "p": "Del planiniu darbu atjungtu klientu skaicius"
   },
-  "generated_at": "2026-09-29T01:23:05Z",
-  "total_rows": 7037,
+  "generated_at": "2026-09-29T01:33:05Z",
+  "total_rows": 7039,
   "months": [
     {
       "file": "2026-08.csv",
@@ -17,9 +17,9 @@
     },
     {
       "file": "2026-09.csv",
-      "rows": 6257,
+      "rows": 6259,
       "first": "2026-09-01T00:03:05Z",
-      "last": "2026-09-29T01:23:05Z"
+      "last": "2026-09-29T01:33:05Z"
     }
   ]
 }
